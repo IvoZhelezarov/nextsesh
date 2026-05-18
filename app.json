@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gymlist",
-    "slug": "gymlist",
+    "name": "NextSesh",
+    "slug": "nextsesh",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

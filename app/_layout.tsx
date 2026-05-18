@@ -35,7 +35,13 @@ export default function RootLayout() {
   }
 
   if (!ready) {
-    return <View className="flex-1 bg-bg" />;
+    return (
+      <View className="flex-1 bg-bg items-center justify-center">
+        <Text style={{ color: '#ffffff', fontSize: 38, fontWeight: '800', letterSpacing: -1 }}>
+          Next<Text style={{ color: '#6366f1' }}>Sesh</Text>
+        </Text>
+      </View>
+    );
   }
 
   return (
