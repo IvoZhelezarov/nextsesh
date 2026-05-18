@@ -1,0 +1,45 @@
+name: Build APK
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build APK
+        run: eas build --platform android --profile production --non-interactive
+
+      - name: Download APK and attach to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the download URL of the latest finished build
+          BUILD_URL=$(eas build:list --platform android --status finished --limit 1 --json --non-interactive | \
+            node -e "const d=require('fs').readFileSync('/dev/stdin','utf8'); console.log(JSON.parse(d)[0].artifacts.buildUrl)")
+
+          # Download the APK
+          curl -L "$BUILD_URL" -o nextsesh.apk
+
+          # Attach it to the GitHub release that triggered this workflow
+          gh release upload "${{ github.event.release.tag_name }}" nextsesh.apk --clobber
