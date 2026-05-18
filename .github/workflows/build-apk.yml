@@ -53,7 +53,7 @@ jobs:
           echo "Waiting for build $BUILD_ID to complete..."
 
           while true; do
-            STATUS=$(eas build:view "$BUILD_ID" --json --json | node -e "
+            STATUS=$(eas build:view "$BUILD_ID" --json | node -e "
               let d='';
               process.stdin.resume();
               process.stdin.on('data', c => d += c);
@@ -67,11 +67,11 @@ jobs:
             sleep 30
           done
 
-          BUILD_URL=$(eas build:view "$BUILD_ID" --json --json | node -e "
+          BUILD_URL=$(eas build:view "$BUILD_ID" --json | node -e "
             let d='';
             process.stdin.resume();
             process.stdin.on('data', c => d += c);
-            process.stdin.on('end', () => console.log(JSON.parse(d).artifacts.buildUrl));
+            process.stdin.on('end', () => console.log(JSON.parse(d).buildArtifactsUrl));
           ")
 
           echo "Downloading APK from $BUILD_URL"
