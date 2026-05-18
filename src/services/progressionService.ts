@@ -64,4 +64,17 @@ export async function applyProgression(
       exerciseTemplateId,
     ]
   );
+
+  // Auto-progression updated the base template, so per-set overrides are stale.
+  // Clear them so the next session loads fresh targets without yellow highlights.
+  await db.runAsync(
+    `UPDATE exercise_set_targets
+     SET target_weight_kg    = NULL,
+         target_reps         = NULL,
+         target_duration_sec = NULL,
+         is_modified         = 0,
+         updated_at          = strftime('%Y-%m-%dT%H:%M:%SZ','now')
+     WHERE exercise_template_id = ?`,
+    [exerciseTemplateId]
+  );
 }
