@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 14.0.0"
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
@@ -11,6 +12,9 @@
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       }
     }
   }
