@@ -2,13 +2,14 @@ import { View, Text, Pressable } from 'react-native';
 import { useState } from 'react';
 import { WorkoutSession } from '@/types';
 import { formatDate, formatDuration, formatSetLabel } from '@/utils/formatters';
-import { ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
 
 interface Props {
   session: WorkoutSession;
+  onDelete?: (id: number) => void;
 }
 
-export function HistoryItem({ session }: Props) {
+export function HistoryItem({ session, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const duration =
@@ -29,6 +30,7 @@ export function HistoryItem({ session }: Props) {
   return (
     <Pressable
       onPress={() => setExpanded((v) => !v)}
+      onLongPress={() => onDelete?.(session.id)}
       className="bg-bg-card rounded-xl px-4 py-3 mb-3 active:opacity-80 overflow-hidden"
       style={session.templateColor ? { borderLeftWidth: 3, borderLeftColor: session.templateColor } : undefined}
     >
@@ -41,11 +43,22 @@ export function HistoryItem({ session }: Props) {
             {formatDate(session.startedAt)} · {duration}
           </Text>
         </View>
-        {expanded ? (
-          <ChevronUp size={16} color="#555" />
-        ) : (
-          <ChevronDown size={16} color="#555" />
-        )}
+        <View className="flex-row items-center gap-2">
+          {expanded && onDelete && (
+            <Pressable
+              onPress={() => onDelete(session.id)}
+              hitSlop={8}
+              className="active:opacity-60"
+            >
+              <Trash2 size={15} color="#ef4444" />
+            </Pressable>
+          )}
+          {expanded ? (
+            <ChevronUp size={16} color="#555" />
+          ) : (
+            <ChevronDown size={16} color="#555" />
+          )}
+        </View>
       </View>
 
       {expanded && (

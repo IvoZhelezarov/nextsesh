@@ -5,6 +5,7 @@ import { WorkoutSession } from '@/types';
 
 interface Props {
   sessions: WorkoutSession[];
+  onDayPress?: (session: WorkoutSession) => void;
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -24,7 +25,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export function WorkoutCalendar({ sessions }: Props) {
+export function WorkoutCalendar({ sessions, onDayPress }: Props) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -38,17 +39,15 @@ export function WorkoutCalendar({ sessions }: Props) {
     else setMonth((m) => m + 1);
   };
 
-  // Build a map: "YYYY-MM-DD" -> templateColor (last session of that day wins)
+  // Build maps: "YYYY-MM-DD" -> color and -> last session of that day
   const dayColorMap = new Map<string, string>();
+  const daySessionMap = new Map<string, WorkoutSession>();
   for (const s of sessions) {
     const d = s.startedAt.slice(0, 10);
+    daySessionMap.set(d, s);
     if (s.templateColor) dayColorMap.set(d, s.templateColor);
     else if (!dayColorMap.has(d)) dayColorMap.set(d, '#6366f1');
   }
-
-  // Build a set of days that have any session (for dot indicator)
-  const dayHasSession = new Set<string>();
-  for (const s of sessions) dayHasSession.add(s.startedAt.slice(0, 10));
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDow = getFirstDayOfWeek(year, month);
@@ -96,10 +95,13 @@ export function WorkoutCalendar({ sessions }: Props) {
             const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`;
             const color = dayColorMap.get(dateStr);
             const isToday = dateStr === todayStr;
+            const session = daySessionMap.get(dateStr);
+            const pressable = !!session && !!onDayPress;
 
             return (
               <View key={col} style={{ flex: 1, alignItems: 'center', paddingVertical: 3 }}>
-                <View
+                <Pressable
+                  onPress={pressable ? () => onDayPress!(session!) : undefined}
                   style={[
                     {
                       width: 32, height: 32, borderRadius: 16,
@@ -118,7 +120,7 @@ export function WorkoutCalendar({ sessions }: Props) {
                   >
                     {day}
                   </Text>
-                </View>
+                </Pressable>
               </View>
             );
           })}

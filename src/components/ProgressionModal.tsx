@@ -29,18 +29,32 @@ interface Props {
 }
 
 export function ProgressionModal({ exercises, onSave, onSkip }: Props) {
+  const initialValues = exercises.map((ex) =>
+    ex.sets.map((s) => ({
+      weightKg: s.actualWeightKg ?? s.targetWeightKg,
+      reps: s.actualReps ?? s.targetReps,
+      durationSec: s.actualDurationSec ?? s.targetDurationSec,
+    }))
+  );
+
   const [overrides, setOverrides] = useState<ExerciseOverride[]>(() =>
-    exercises.map((ex) => ({
+    exercises.map((ex, exIdx) => ({
       exerciseTemplateId: ex.exerciseTemplate.id,
       name: ex.exerciseTemplate.name,
-      sets: ex.sets.map((s) => ({
-        weightKg: s.actualWeightKg ?? s.targetWeightKg,
-        reps: s.actualReps ?? s.targetReps,
-        durationSec: s.actualDurationSec ?? s.targetDurationSec,
+      sets: ex.sets.map((s, setIdx) => ({
+        weightKg: initialValues[exIdx][setIdx].weightKg,
+        reps: initialValues[exIdx][setIdx].reps,
+        durationSec: initialValues[exIdx][setIdx].durationSec,
         modified: { weight: false, reps: false, duration: false },
       })),
     }))
   );
+
+  const fieldToKey: Record<keyof SetModified, keyof Omit<SetOverride, 'modified'>> = {
+    weight: 'weightKg',
+    reps: 'reps',
+    duration: 'durationSec',
+  };
 
   const updateSet = (
     exIdx: number,
@@ -55,13 +69,16 @@ export function ProgressionModal({ exercises, onSave, onSkip }: Props) {
           ...ex,
           sets: ex.sets.map((s, si) => {
             if (si !== setIdx) return s;
-            return {
-              ...s,
-              ...patch,
-              modified: modifiedField
-                ? { ...s.modified, [modifiedField]: true }
-                : s.modified,
-            };
+            const updated = { ...s, ...patch };
+            const modified = modifiedField
+              ? {
+                  ...s.modified,
+                  [modifiedField]:
+                    updated[fieldToKey[modifiedField]] !==
+                    initialValues[exIdx][setIdx][fieldToKey[modifiedField]],
+                }
+              : s.modified;
+            return { ...updated, modified };
           }),
         };
       })
