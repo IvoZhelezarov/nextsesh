@@ -290,6 +290,18 @@ export async function deleteExercise(db: SQLiteDatabase, id: number): Promise<vo
   await db.runAsync('DELETE FROM exercise_templates WHERE id = ?', [id]);
 }
 
+export async function reorderExercises(
+  db: SQLiteDatabase,
+  orderedIds: number[]
+): Promise<void> {
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.runAsync(
+      `UPDATE exercise_templates SET sort_order = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+      [i, orderedIds[i]]
+    );
+  }
+}
+
 export async function saveLastWeightsForSession(
   db: SQLiteDatabase,
   sessionId: number
