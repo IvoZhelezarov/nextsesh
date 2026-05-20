@@ -53,29 +53,29 @@ jobs:
           echo "Waiting for build $BUILD_ID to complete..."
 
           while true; do
-            STATUS=$(eas build:view "$BUILD_ID" --json | node -e "
+            BUILD_JSON=$(eas build:view "$BUILD_ID" --json)
+            STATUS=$(echo "$BUILD_JSON" | node -e "
               let d='';
               process.stdin.resume();
               process.stdin.on('data', c => d += c);
               process.stdin.on('end', () => console.log(JSON.parse(d).status));
             ")
             echo "  status: $STATUS"
-            if [ "$STATUS" = "FINISHED" ]; then break; fi
+            if [ "$STATUS" = "FINISHED" ]; then
+              BUILD_URL=$(echo "$BUILD_JSON" | node -e "
+                let d='';
+                process.stdin.resume();
+                process.stdin.on('data', c => d += c);
+                process.stdin.on('end', () => console.log(JSON.parse(d).artifacts.buildUrl));
+              ")
+              echo "Downloading APK from $BUILD_URL"
+              curl -L "$BUILD_URL" -o nextsesh.apk
+              echo "Attaching APK to release ${{ github.event.release.tag_name }}"
+              gh release upload "${{ github.event.release.tag_name }}" nextsesh.apk --clobber
+              break
+            fi
             if [ "$STATUS" = "ERRORED" ] || [ "$STATUS" = "CANCELLED" ]; then
               echo "Build $STATUS"; exit 1
             fi
             sleep 30
           done
-
-          BUILD_URL=$(eas build:view "$BUILD_ID" --json | node -e "
-            let d='';
-            process.stdin.resume();
-            process.stdin.on('data', c => d += c);
-            process.stdin.on('end', () => console.log(JSON.parse(d).buildArtifactsUrl));
-          ")
-
-          echo "Downloading APK from $BUILD_URL"
-          curl -L "$BUILD_URL" -o nextsesh.apk
-
-          echo "Attaching APK to release ${{ github.event.release.tag_name }}"
-          gh release upload "${{ github.event.release.tag_name }}" nextsesh.apk --clobber
