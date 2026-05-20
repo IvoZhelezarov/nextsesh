@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, FlatList, Alert, TextInput } from 'react-native';
+import { View, Text, Pressable, Alert, TextInput } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Plus, Pencil, ChevronRight, Trash2, Check } from 'lucide-react-native';
+import { ArrowLeft, Plus, Pencil, Check } from 'lucide-react-native';
 import { useDB } from '@/hooks/useDB';
 import { ExerciseTemplate, WorkoutTemplate } from '@/types';
-import { getTemplateWithExercises, updateTemplate, deleteExercise } from '@/services/templateService';
-import { formatSetSummary } from '@/utils/formatters';
+import { getTemplateWithExercises, updateTemplate, deleteExercise, reorderExercises } from '@/services/templateService';
+import DraggableExerciseList from '@/components/DraggableExerciseList';
 
 const PALETTE = [
   '#6366f1', // indigo (accent)
@@ -73,6 +73,11 @@ export default function TemplateDetailScreen() {
     ]);
   };
 
+  const handleReorder = async (reordered: ExerciseTemplate[]) => {
+    setTemplate((t) => t ? { ...t, exercises: reordered } : t);
+    await reorderExercises(db, reordered.map((e) => e.id));
+  };
+
   if (!template) {
     return (
       <View className="flex-1 bg-bg items-center justify-center">
@@ -121,38 +126,11 @@ export default function TemplateDetailScreen() {
         ))}
       </View>
 
-      <FlatList
-        data={template.exercises ?? []}
-        keyExtractor={(e) => String(e.id)}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
-        ListEmptyComponent={
-          <View className="items-center mt-10">
-            <Text className="text-text-muted text-sm">No exercises yet.</Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/exercise/${item.id}`)}
-            className="bg-bg-card rounded-xl px-4 py-4 mb-3 flex-row items-center active:opacity-80"
-          >
-            <View className="flex-1 mr-3">
-              <Text className="text-text-primary font-semibold text-base">{item.name}</Text>
-              <Text className="text-text-muted text-xs mt-0.5">
-                {formatSetSummary(
-                  item.sets,
-                  item.exerciseType,
-                  item.currentWeightKg,
-                  item.targetReps,
-                  item.targetDurationSec
-                )}
-              </Text>
-            </View>
-            <Pressable onPress={() => handleDeleteExercise(item)} className="p-2 mr-1" hitSlop={8}>
-              <Trash2 size={15} color="#555" />
-            </Pressable>
-            <ChevronRight size={15} color="#555" />
-          </Pressable>
-        )}
+      <DraggableExerciseList
+        exercises={template.exercises ?? []}
+        onPress={(ex) => router.push(`/exercise/${ex.id}`)}
+        onDelete={handleDeleteExercise}
+        onReorder={handleReorder}
       />
 
       <Pressable
