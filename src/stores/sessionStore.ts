@@ -20,7 +20,6 @@ interface SessionState {
       actualWeightKg?: number;
       actualReps?: number;
       actualDurationSec?: number;
-      markProgress: boolean;
     }
   ) => Promise<number | null>;
   unmarkSetDone: (exerciseTemplateId: number, localId: string) => Promise<void>;
@@ -47,7 +46,6 @@ function buildActiveSets(exercise: ActiveExercise['exerciseTemplate']): ActiveSe
       targetWeightKg,
       targetReps,
       targetDurationSec,
-      markProgress: false,
       isDone: false,
       isModified: perSet?.isModified ?? false,
     };
@@ -93,7 +91,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         actualWeightKg: ls.actualWeightKg,
         actualReps: ls.actualReps,
         actualDurationSec: ls.actualDurationSec,
-        markProgress: ls.markProgress,
       };
     }
 
@@ -136,7 +133,6 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       targetWeightKg: currentSet.targetWeightKg,
       targetReps: currentSet.targetReps,
       targetDurationSec: currentSet.targetDurationSec,
-      markProgress: data.markProgress,
     });
 
     // Clear the modified flag for this set now that the user has acknowledged it by completing it
