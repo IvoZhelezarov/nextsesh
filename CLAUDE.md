@@ -14,13 +14,12 @@ Personal workout tracking app. Solo use, Android target.
 
 ```
 app/                routes — screens call stores + services
-src/stores/         Zustand: sessionStore, settingsStore, timerStore
-src/services/       templateService, sessionService, progressionService,
-                    notificationService, settingsService
+src/stores/         Zustand: sessionStore, settingsStore
+src/services/       templateService, sessionService, progressionService, settingsService
 src/db/             client.ts (singleton), migrations.ts (PRAGMA user_version)
 src/utils/          progression.ts (pure logic), formatters.ts, constants.ts
 src/components/     ExerciseCard, SetRow, WorkoutCard, ProgressionModal,
-                    HistoryItem, WorkoutCalendar, DraggableExerciseList, RestTimerOverlay
+                    HistoryItem, WorkoutCalendar, DraggableExerciseList
 src/types/index.ts  all TypeScript interfaces
 ```
 
@@ -39,14 +38,14 @@ src/types/index.ts  all TypeScript interfaces
 7. **Styling: NativeWind `className`** — use inline `style={{}}` only for values outside the Tailwind theme (e.g. dynamic hex colors).
 8. **Progression guard** — `applyProgression` must check `exercise.progEnabled` before running; skip silently if false.
 9. **List-item components** (`HistoryItem`, `WorkoutCard`) must be wrapped in `React.memo` — they appear in FlatLists and re-render on every parent update otherwise.
-10. **`resetAllProgression` must clear set targets** — after resetting `target_reps` on `exercise_templates`, also clear all rows in `exercise_set_targets` (nullify values, set `is_modified = 0`). Otherwise stale per-set overrides survive the reset and show phantom yellow highlights.
-11. **Deleting an exercise must clear its set targets first** — `exercise_set_targets` has no cascade delete from `exercise_templates`. Either delete targets explicitly before deleting the exercise, or add a cascade via a future migration. Do not leave orphan rows.
+10. **`resetAllProgression` must clear set targets** — after resetting `target_reps` on `exercise_templates`, also clear all rows in `exercise_set_targets` (nullify values, set `is_modified = 0`). Otherwise stale per-set overrides survive the reset and show phantom yellow highlights. Note: this does **not** reset `current_weight_kg` — weight is intentionally preserved.
+11. **Deleting an exercise cascades to set targets automatically** — migration 005 added `ON DELETE CASCADE` on `exercise_set_targets.exercise_template_id`, so deleting an exercise row also deletes its per-set targets. No explicit pre-delete cleanup needed.
 
 ## Database
 
 - `src/db/client.ts` — singleton DB connection (`getDB()`).
 - `src/db/migrations.ts` — sequential migrations gated on `PRAGMA user_version`. Current version: **6**.
-- `exercise_set_targets` rows are cleared by `progressionService` after auto-progression runs and by `resetAllProgression`. They have no cascade delete — deleting an exercise must explicitly delete its targets first.
+- `exercise_set_targets` rows are cleared by `progressionService` after auto-progression runs and by `resetAllProgression`. Migration 005 added `ON DELETE CASCADE` on the FK to `exercise_templates`, so deleting an exercise automatically removes its targets.
 
 ## Progression system
 
