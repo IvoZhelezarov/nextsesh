@@ -10,7 +10,6 @@ interface Props {
     actualWeightKg?: number;
     actualReps?: number;
     actualDurationSec?: number;
-    markProgress: boolean;
   }) => void;
   onUndo: () => void;
   onChange: (patch: Partial<Pick<ActiveSet, 'actualWeightKg' | 'actualReps' | 'actualDurationSec'>>) => void;
@@ -180,8 +179,6 @@ export function BodyweightWeightPill({
 }
 
 export function SetRow({ set, isActive, canUndo, onDone, onUndo, onChange }: Props) {
-  const markProgress = true;
-
   const showWeight = set.exerciseType === 'weight_reps' || set.exerciseType === 'weight_time';
   const showReps = set.exerciseType === 'weight_reps' || set.exerciseType === 'bodyweight_reps';
   const showDuration = set.exerciseType === 'weight_time';
@@ -195,7 +192,6 @@ export function SetRow({ set, isActive, canUndo, onDone, onUndo, onChange }: Pro
       actualWeightKg: set.actualWeightKg,
       actualReps: set.actualReps,
       actualDurationSec: set.actualDurationSec,
-      markProgress,
     });
   };
 
@@ -282,7 +278,6 @@ export function SetRow({ set, isActive, canUndo, onDone, onUndo, onChange }: Pro
               actualWeightKg: set.actualWeightKg,
               actualReps: set.actualReps,
               actualDurationSec: set.actualDurationSec,
-              markProgress,
             });
           }}
           disabled={!isActive}
