@@ -12,15 +12,14 @@ Personal workout tracking app. Solo use, Android target.
 
 ## Architecture
 
-Layers, top to bottom:
-
 ```
-app/                routes (expo-router) — screens call stores + services
+app/                routes — screens call stores + services
 src/stores/         Zustand: sessionStore, settingsStore, timerStore
-src/services/       templateService, sessionService, progressionService, notificationService
+src/services/       templateService, sessionService, progressionService,
+                    notificationService, settingsService
 src/db/             client.ts (singleton), migrations.ts (PRAGMA user_version)
 src/utils/          progression.ts (pure logic), formatters.ts, constants.ts
-src/components/      ExerciseCard, SetRow, WorkoutCard, ProgressionModal,
+src/components/     ExerciseCard, SetRow, WorkoutCard, ProgressionModal,
                     HistoryItem, WorkoutCalendar, DraggableExerciseList, RestTimerOverlay
 src/types/index.ts  all TypeScript interfaces
 ```
@@ -29,36 +28,30 @@ src/types/index.ts  all TypeScript interfaces
 - **services** own all SQLite access.
 - **SQLite is the source of truth** for everything persisted; stores are a working copy.
 
-## Conventions
+## Rules
 
-1. **All DB access goes through `src/services/`** — screens never call `db.runAsync` directly.
-2. **Row converters** (snake_case DB → camelCase TS) live in the same service file as the query that uses them.
-3. **Zustand stores own in-memory active-session state**; SQLite is the source of truth for everything persisted.
+1. **All DB access goes through `src/services/`** — screens and stores never call `db.runAsync`, `db.getFirstAsync`, or `db.getAllAsync` directly.
+2. **Row converters** (snake_case DB → camelCase TS) live in the same service file as the query that uses them. Shared converters go in `src/services/serviceUtils.ts`.
+3. **Stores own in-memory active-session state only** — `settingsStore` and all other stores call `settingsService` / the relevant service; no raw SQL in stores.
 4. **Services do not wrap in try/catch** — errors propagate to callers.
-5. **Styling: NativeWind `className`.** Use inline `style={{}}` only when the value is not in the Tailwind theme (e.g. dynamic hex colors).
-6. **Schema changes via migrations only** — never `ALTER TABLE` manually outside a migration. Bump `PRAGMA user_version`.
-7. **Wrap multi-row writes** (loops of `INSERT`/`UPDATE`) in `db.withTransactionAsync`.
+5. **Wrap multi-row writes** (any loop of `INSERT`/`UPDATE`) in `db.withTransactionAsync`.
+6. **Schema changes via migrations only** — never `ALTER TABLE` outside a migration. Bump `PRAGMA user_version`. Never edit an already-applied migration.
+7. **Styling: NativeWind `className`** — use inline `style={{}}` only for values outside the Tailwind theme (e.g. dynamic hex colors).
+8. **Progression guard** — `applyProgression` must check `exercise.progEnabled` before running; skip silently if false.
+9. **List-item components** (`HistoryItem`, `WorkoutCard`) must be wrapped in `React.memo` — they appear in FlatLists and re-render on every parent update otherwise.
 
 ## Database
 
-- `src/db/client.ts` — singleton DB connection.
-- `src/db/migrations.ts` — 5 migrations, gated on `PRAGMA user_version`. Add a new migration to change schema; never edit an applied one.
+- `src/db/client.ts` — singleton DB connection (`getDB()`).
+- `src/db/migrations.ts` — sequential migrations gated on `PRAGMA user_version`. Current version: **5**.
+- `exercise_set_targets` rows are cleared by `progressionService` after auto-progression runs. They have no cascade delete — deleting an exercise should explicitly delete its targets first or via a future migration.
 
 ## Progression system
 
-Controlled per-exercise via the `progEnabled` flag. Per-exercise prog values fall back to global settings defaults when null.
+Controlled per-exercise via `progEnabled`. Falls back to global settings defaults when per-exercise values are null.
 
-- **`weight_reps` / `bodyweight_reps`** — if all sets are marked `markProgress=true` AND `curReps >= repMax`, add `progWeightIncrement` to weight and reset reps to `repMin`. Otherwise increment reps by 1.
-- **`weight_time`** — if `curDuration >= durMax`, add weight and reset duration to `durMin`. Otherwise add 5s.
-- Per-set target overrides (`exercise_set_targets`) are cleared after auto-progression runs.
+- **`weight_reps` / `bodyweight_reps`** — if all sets `markProgress=true` AND `curReps >= repMax`: add `progWeightIncrement`, reset reps to `repMin`. Otherwise: reps +1.
+- **`weight_time`** — if `curDuration >= durMax`: add weight, reset to `durMin`. Otherwise: duration +5s.
+- Per-set overrides (`exercise_set_targets`) are cleared after progression runs.
 
-Pure logic lives in `src/utils/progression.ts`; `progressionService.ts` wires it to the DB.
-
-## Known issues
-
-1. **`resumeSession` (sessionStore.ts)** stamps `startedAt` as `now()` instead of using the original session `startedAt` from DB. Fix: pass `startedAt` param.
-2. **Crash-recovery path (app/session/[id].tsx)** calls `initSession` instead of `resumeSession`, so completed sets aren't restored. Fix: fetch `loggedSets` + call `resumeSession`.
-3. **`finishSession` (sessionService.ts)** runs `applyProgression` before `saveLastWeightsForSession`, so progression may use stale weight. Fix: call `saveLastWeights` first inside `finishSession`.
-4. **`createSession`** hardcodes `'#22c55e'` as fallback `templateColor`; should be null. Fix: `templateColor ?? null`.
-5. **`saveSetTargets` and `reorderExercises`** run N serial DB writes without a transaction. Fix: wrap in `db.withTransactionAsync`.
-6. **`rowToLoggedSet`** is duplicated in `sessionService.ts` and `progressionService.ts`. Fix: extract to `serviceUtils.ts`.
+Pure logic: `src/utils/progression.ts`. DB wiring: `src/services/progressionService.ts`.
