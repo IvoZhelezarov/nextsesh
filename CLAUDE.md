@@ -39,18 +39,21 @@ src/types/index.ts  all TypeScript interfaces
 7. **Styling: NativeWind `className`** — use inline `style={{}}` only for values outside the Tailwind theme (e.g. dynamic hex colors).
 8. **Progression guard** — `applyProgression` must check `exercise.progEnabled` before running; skip silently if false.
 9. **List-item components** (`HistoryItem`, `WorkoutCard`) must be wrapped in `React.memo` — they appear in FlatLists and re-render on every parent update otherwise.
+10. **`resetAllProgression` must clear set targets** — after resetting `target_reps` on `exercise_templates`, also clear all rows in `exercise_set_targets` (nullify values, set `is_modified = 0`). Otherwise stale per-set overrides survive the reset and show phantom yellow highlights.
+11. **Deleting an exercise must clear its set targets first** — `exercise_set_targets` has no cascade delete from `exercise_templates`. Either delete targets explicitly before deleting the exercise, or add a cascade via a future migration. Do not leave orphan rows.
 
 ## Database
 
 - `src/db/client.ts` — singleton DB connection (`getDB()`).
-- `src/db/migrations.ts` — sequential migrations gated on `PRAGMA user_version`. Current version: **5**.
-- `exercise_set_targets` rows are cleared by `progressionService` after auto-progression runs. They have no cascade delete — deleting an exercise should explicitly delete its targets first or via a future migration.
+- `src/db/migrations.ts` — sequential migrations gated on `PRAGMA user_version`. Current version: **6**.
+- `exercise_set_targets` rows are cleared by `progressionService` after auto-progression runs and by `resetAllProgression`. They have no cascade delete — deleting an exercise must explicitly delete its targets first.
 
 ## Progression system
 
-Controlled per-exercise via `progEnabled`. Falls back to global settings defaults when per-exercise values are null.
+Controlled per-exercise via `progEnabled`. Falls back to global settings defaults when per-exercise values are null. All logged sets for an exercise count toward progression (there is no per-set opt-out).
 
-- **`weight_reps` / `bodyweight_reps`** — if all sets `markProgress=true` AND `curReps >= repMax`: add `progWeightIncrement`, reset reps to `repMin`. Otherwise: reps +1.
+- **`weight_reps`** — if all sets completed AND `curReps >= repMax`: add `progWeightIncrement`, reset reps to `repMin`. Otherwise: reps +1.
+- **`bodyweight_reps`** — if all sets completed AND `curReps >= repMax`: already at ceiling, do nothing (no weight bump, no rep reset). Otherwise: reps +1.
 - **`weight_time`** — if `curDuration >= durMax`: add weight, reset to `durMin`. Otherwise: duration +5s.
 - Per-set overrides (`exercise_set_targets`) are cleared after progression runs.
 
