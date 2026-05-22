@@ -15,7 +15,6 @@ export function rowToLoggedSet(row: Record<string, unknown>): LoggedSet {
     targetWeightKg: row.target_weight_kg as number | undefined,
     targetReps: row.target_reps as number | undefined,
     targetDurationSec: row.target_duration_sec as number | undefined,
-    markProgress: (row.mark_progress as number) === 1,
     completedAt: row.completed_at as string | undefined,
     createdAt: row.created_at as string,
   };

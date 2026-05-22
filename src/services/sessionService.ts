@@ -4,24 +4,7 @@ import { applyProgression } from './progressionService';
 import { saveLastWeightsForSession } from './templateService';
 import { getDB } from '@/db/client';
 import { rowToLoggedSet } from './serviceUtils';
-
-type SettingsRow = {
-  default_rest_sec: number;
-  default_weight_increment: number;
-  default_rep_min: number;
-  default_rep_max: number;
-};
-
-async function getSettings(db: SQLiteDatabase) {
-  const row = await db.getFirstAsync<SettingsRow>('SELECT * FROM settings WHERE id = 1');
-  return {
-    id: 1 as const,
-    defaultRestSec: row?.default_rest_sec ?? 90,
-    defaultWeightIncrement: row?.default_weight_increment ?? 2.5,
-    defaultRepMin: row?.default_rep_min ?? 8,
-    defaultRepMax: row?.default_rep_max ?? 12,
-  };
-}
+import { getSettings } from './settingsService';
 
 function rowToSession(row: Record<string, unknown>): WorkoutSession {
   return {
@@ -65,7 +48,6 @@ export async function saveLoggedSet(
     targetWeightKg?: number;
     targetReps?: number;
     targetDurationSec?: number;
-    markProgress: boolean;
   }
 ): Promise<number> {
   const completedAt = new Date().toISOString();
@@ -73,9 +55,8 @@ export async function saveLoggedSet(
     `INSERT INTO logged_sets
        (workout_session_id, exercise_template_id, exercise_name, exercise_type, set_number,
         actual_weight_kg, actual_reps, actual_duration_sec, is_bodyweight,
-        target_weight_kg, target_reps, target_duration_sec,
-        mark_progress, completed_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        target_weight_kg, target_reps, target_duration_sec, completed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.workoutSessionId,
       data.exerciseTemplateId ?? null,
@@ -89,7 +70,6 @@ export async function saveLoggedSet(
       data.targetWeightKg ?? null,
       data.targetReps ?? null,
       data.targetDurationSec ?? null,
-      data.markProgress ? 1 : 0,
       completedAt,
     ]
   );
@@ -103,21 +83,18 @@ export async function updateLoggedSet(
     actualWeightKg?: number;
     actualReps?: number;
     actualDurationSec?: number;
-    markProgress?: boolean;
   }
 ): Promise<void> {
   await db.runAsync(
     `UPDATE logged_sets SET
        actual_weight_kg    = COALESCE(?, actual_weight_kg),
        actual_reps         = COALESCE(?, actual_reps),
-       actual_duration_sec = COALESCE(?, actual_duration_sec),
-       mark_progress       = COALESCE(?, mark_progress)
+       actual_duration_sec = COALESCE(?, actual_duration_sec)
      WHERE id = ?`,
     [
       patch.actualWeightKg ?? null,
       patch.actualReps ?? null,
       patch.actualDurationSec ?? null,
-      patch.markProgress != null ? (patch.markProgress ? 1 : 0) : null,
       id,
     ]
   );
@@ -137,7 +114,13 @@ export async function finishSession(
   // applyProgression sees fresh current_weight_kg rather than stale values.
   await saveLastWeightsForSession(db, sessionId);
 
-  const settings = await getSettings(db);
+  const settings = (await getSettings(db)) ?? {
+    id: 1 as const,
+    defaultRestSec: 90,
+    defaultWeightIncrement: 2.5,
+    defaultRepMin: 8,
+    defaultRepMax: 12,
+  };
 
   // Collect unique exercise template IDs from this session
   const rows = await db.getAllAsync<{ exercise_template_id: number }>(
