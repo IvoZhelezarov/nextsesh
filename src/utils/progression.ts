@@ -13,13 +13,12 @@ export function calculateNextTemplate(
 ): ProgressionUpdate {
   if (!exercise.progEnabled) return {};
 
-  const progressedSets = loggedSets.filter((s) => s.markProgress);
-  if (progressedSets.length === 0) return {};
+  if (loggedSets.length === 0) return {};
 
   const repMin = exercise.progRepMin ?? settings.defaultRepMin;
   const repMax = exercise.progRepMax ?? settings.defaultRepMax;
   const wtIncr = exercise.progWeightIncrement ?? settings.defaultWeightIncrement;
-  const allComplete = progressedSets.length === exercise.sets;
+  const allComplete = loggedSets.length === exercise.sets;
 
   if (exercise.exerciseType === 'weight_reps' || exercise.exerciseType === 'bodyweight_reps') {
     const curReps = exercise.targetReps ?? repMin;
@@ -27,11 +26,9 @@ export function calculateNextTemplate(
     if (!allComplete) return {};
 
     if (curReps >= repMax) {
+      if (exercise.isBodyweight) return {};
       const curWt = exercise.currentWeightKg ?? 0;
-      return {
-        currentWeightKg: exercise.isBodyweight ? undefined : curWt + wtIncr,
-        targetReps: repMin,
-      };
+      return { currentWeightKg: curWt + wtIncr, targetReps: repMin };
     }
 
     return { targetReps: curReps + 1 };
