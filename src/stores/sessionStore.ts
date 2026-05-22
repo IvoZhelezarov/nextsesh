@@ -7,7 +7,12 @@ import { clearModifiedFlags } from '@/services/templateService';
 interface SessionState {
   activeSession: ActiveSession | null;
   initSession: (sessionId: number, template: WorkoutTemplate) => void;
-  resumeSession: (sessionId: number, template: WorkoutTemplate, loggedSets: LoggedSet[]) => void;
+  resumeSession: (
+    sessionId: number,
+    template: WorkoutTemplate,
+    loggedSets: LoggedSet[],
+    startedAt?: string
+  ) => void;
   markSetDone: (
     exerciseTemplateId: number,
     localId: string,
@@ -68,7 +73,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     });
   },
 
-  resumeSession: (sessionId, template, loggedSets) => {
+  resumeSession: (sessionId, template, loggedSets, startedAt) => {
     const exercises: ActiveExercise[] = (template.exercises ?? []).map((et) => ({
       exerciseTemplate: et,
       sets: buildActiveSets(et),
@@ -97,7 +102,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         sessionId,
         workoutTemplate: template,
         exercises,
-        startedAt: new Date().toISOString(),
+        startedAt: startedAt ?? new Date().toISOString(),
       },
     });
   },

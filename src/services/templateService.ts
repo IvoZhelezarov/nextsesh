@@ -111,21 +111,23 @@ export async function saveSetTargets(
   exerciseTemplateId: number,
   sets: ExerciseSetTarget[]
 ): Promise<void> {
-  for (const s of sets) {
-    await db.runAsync(
-      `INSERT OR REPLACE INTO exercise_set_targets
-         (exercise_template_id, set_number, target_weight_kg, target_reps, target_duration_sec, is_modified, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))`,
-      [
-        exerciseTemplateId,
-        s.setNumber,
-        s.targetWeightKg ?? null,
-        s.targetReps ?? null,
-        s.targetDurationSec ?? null,
-        s.isModified ? 1 : 0,
-      ]
-    );
-  }
+  await db.withTransactionAsync(async () => {
+    for (const s of sets) {
+      await db.runAsync(
+        `INSERT OR REPLACE INTO exercise_set_targets
+           (exercise_template_id, set_number, target_weight_kg, target_reps, target_duration_sec, is_modified, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))`,
+        [
+          exerciseTemplateId,
+          s.setNumber,
+          s.targetWeightKg ?? null,
+          s.targetReps ?? null,
+          s.targetDurationSec ?? null,
+          s.isModified ? 1 : 0,
+        ]
+      );
+    }
+  });
 }
 
 export async function clearModifiedFlags(
@@ -294,12 +296,14 @@ export async function reorderExercises(
   db: SQLiteDatabase,
   orderedIds: number[]
 ): Promise<void> {
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db.runAsync(
-      `UPDATE exercise_templates SET sort_order = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
-      [i, orderedIds[i]]
-    );
-  }
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync(
+        `UPDATE exercise_templates SET sort_order = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+        [i, orderedIds[i]]
+      );
+    }
+  });
 }
 
 export async function saveLastWeightsForSession(

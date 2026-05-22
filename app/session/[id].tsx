@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useDB } from '@/hooks/useDB';
 import { useSessionStore } from '@/stores/sessionStore';
-import { finishSession, getInProgressSession } from '@/services/sessionService';
-import { getTemplateWithExercises, saveLastWeightsForSession, saveSetTargets } from '@/services/templateService';
+import { finishSession, getInProgressSession, getLoggedSetsForSession } from '@/services/sessionService';
+import { getTemplateWithExercises, saveSetTargets } from '@/services/templateService';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ProgressionModal, ExerciseOverride } from '@/components/ProgressionModal';
 
@@ -17,7 +17,7 @@ export default function SessionScreen() {
   const router = useRouter();
 
   const activeSession = useSessionStore((s) => s.activeSession);
-  const initSession = useSessionStore((s) => s.initSession);
+  const resumeSession = useSessionStore((s) => s.resumeSession);
   const clearSession = useSessionStore((s) => s.clearSession);
 
   const [finishing, setFinishing] = useState(false);
@@ -30,7 +30,10 @@ export default function SessionScreen() {
         const session = await getInProgressSession(db);
         if (session && session.id === sessionId && session.workoutTemplateId) {
           const template = await getTemplateWithExercises(db, session.workoutTemplateId);
-          if (template) initSession(sessionId, template);
+          if (template) {
+            const loggedSets = await getLoggedSetsForSession(db, sessionId);
+            resumeSession(sessionId, template, loggedSets, session.startedAt);
+          }
         }
       })();
     }
@@ -44,7 +47,6 @@ export default function SessionScreen() {
         onPress: async () => {
           setFinishing(true);
           await finishSession(db, sessionId);
-          await saveLastWeightsForSession(db, sessionId);
           // Prompt for progressive overload
           Alert.alert(
             'Progressive overload',

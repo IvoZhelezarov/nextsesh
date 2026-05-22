@@ -60,7 +60,7 @@ export default function HomeScreen() {
       : null;
     if (full) {
       const loggedSets = await getLoggedSetsForSession(db, inProgress.id);
-      resumeSession(inProgress.id, full, loggedSets);
+      resumeSession(inProgress.id, full, loggedSets, inProgress.startedAt);
     }
     router.push(`/session/${inProgress.id}`);
   };

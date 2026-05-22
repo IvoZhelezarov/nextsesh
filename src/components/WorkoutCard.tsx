@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 
 interface Props {
   template: WorkoutTemplate;
-  onPress: () => void;
+  onPress?: () => void;
   label?: string;
 }
 
