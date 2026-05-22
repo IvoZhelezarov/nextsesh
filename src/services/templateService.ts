@@ -339,4 +339,7 @@ export async function resetAllProgression(db: SQLiteDatabase, defaultRepMin: num
     `UPDATE exercise_templates SET target_reps = COALESCE(prog_rep_min, ?), updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
     [defaultRepMin]
   );
+  await db.runAsync(
+    `UPDATE exercise_set_targets SET target_weight_kg = NULL, target_reps = NULL, target_duration_sec = NULL, is_modified = 0, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')`
+  );
 }
