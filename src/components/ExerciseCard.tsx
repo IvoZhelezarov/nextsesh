@@ -18,7 +18,6 @@ const TYPE_LABEL: Record<string, string> = {
 export function ExerciseCard({ exercise }: Props) {
   const markSetDone = useSessionStore((s) => s.markSetDone);
   const unmarkSetDone = useSessionStore((s) => s.unmarkSetDone);
-  const activeSession = useSessionStore((s) => s.activeSession);
 
   const firstPendingLocalId = exercise.sets.find((s) => !s.isDone)?.localId ?? null;
   const lastDoneLocalId = [...exercise.sets].reverse().find((s) => s.isDone)?.localId ?? null;
@@ -35,7 +34,6 @@ export function ExerciseCard({ exercise }: Props) {
     localId: string,
     patch: Partial<Pick<ActiveSet, 'actualWeightKg' | 'actualReps' | 'actualDurationSec'>>
   ) => {
-    if (!activeSession) return;
     useSessionStore.setState((state) => {
       if (!state.activeSession) return state;
       const exercises = state.activeSession.exercises.map((ex) => {
@@ -48,12 +46,13 @@ export function ExerciseCard({ exercise }: Props) {
       return { activeSession: { ...state.activeSession, exercises } };
     });
 
-    const currentEx = activeSession.exercises.find(
+    const session = useSessionStore.getState().activeSession;
+    const currentEx = session?.exercises.find(
       (ex) => ex.exerciseTemplate.id === exercise.exerciseTemplate.id
     );
     const currentSet = currentEx?.sets.find((s) => s.localId === localId);
     if (currentSet?.isDone === true && currentSet.dbId != null) {
-      updateLoggedSet(getDB(), currentSet.dbId, patch);
+      updateLoggedSet(getDB(), currentSet.dbId, patch).catch(() => {});
     }
   };
 
