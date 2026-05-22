@@ -105,6 +105,10 @@ CREATE TABLE IF NOT EXISTS exercise_set_targets (
 CREATE INDEX IF NOT EXISTS idx_set_targets_exercise ON exercise_set_targets(exercise_template_id);
 `;
 
+const MIGRATION_006 = `
+ALTER TABLE logged_sets DROP COLUMN mark_progress;
+`;
+
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL;');
   await db.execAsync('PRAGMA foreign_keys = ON;');
@@ -135,6 +139,11 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   if (current < 5) {
     await db.execAsync(MIGRATION_005);
     await db.execAsync('PRAGMA user_version = 5');
+  }
+
+  if (current < 6) {
+    await db.execAsync(MIGRATION_006);
+    await db.execAsync('PRAGMA user_version = 6');
   }
 
   // Seed default settings row if missing

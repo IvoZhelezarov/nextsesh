@@ -78,7 +78,6 @@ export interface LoggedSet {
   targetWeightKg?: number;
   targetReps?: number;
   targetDurationSec?: number;
-  markProgress: boolean;
   completedAt?: string;
   createdAt: string;
 }
@@ -96,7 +95,6 @@ export interface ActiveSet {
   targetWeightKg?: number;
   targetReps?: number;
   targetDurationSec?: number;
-  markProgress: boolean;
   isDone: boolean;
   dbId?: ResourceId;
   isModified?: boolean;
