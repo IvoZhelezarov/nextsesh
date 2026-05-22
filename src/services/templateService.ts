@@ -324,14 +324,16 @@ export async function saveLastWeightsForSession(
        )`,
     [sessionId]
   );
-  for (const row of rows) {
-    if (row.actual_weight_kg != null) {
-      await db.runAsync(
-        `UPDATE exercise_templates SET current_weight_kg = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
-        [row.actual_weight_kg, row.exercise_template_id]
-      );
+  await db.withTransactionAsync(async () => {
+    for (const row of rows) {
+      if (row.actual_weight_kg != null) {
+        await db.runAsync(
+          `UPDATE exercise_templates SET current_weight_kg = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+          [row.actual_weight_kg, row.exercise_template_id]
+        );
+      }
     }
-  }
+  });
 }
 
 export async function resetAllProgression(db: SQLiteDatabase, defaultRepMin: number): Promise<void> {

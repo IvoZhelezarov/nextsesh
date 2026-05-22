@@ -129,9 +129,11 @@ export async function finishSession(
     [sessionId]
   );
 
-  for (const row of rows) {
-    await applyProgression(db, row.exercise_template_id, sessionId, settings);
-  }
+  await db.withTransactionAsync(async () => {
+    for (const row of rows) {
+      await applyProgression(db, row.exercise_template_id, sessionId, settings);
+    }
+  });
 }
 
 export async function getRecentSessions(
