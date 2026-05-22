@@ -1,5 +1,5 @@
 import { View, Text, Pressable } from 'react-native';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { WorkoutSession } from '@/types';
 import { formatDate, formatDuration, formatSetLabel } from '@/utils/formatters';
 import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
@@ -9,7 +9,7 @@ interface Props {
   onDelete?: (id: number) => void;
 }
 
-export function HistoryItem({ session, onDelete }: Props) {
+export const HistoryItem = memo(function HistoryItem({ session, onDelete }: Props) {
   const [expanded, setExpanded] = useState(false);
 
   const duration =
@@ -85,4 +85,4 @@ export function HistoryItem({ session, onDelete }: Props) {
       )}
     </Pressable>
   );
-}
+});
