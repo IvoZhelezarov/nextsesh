@@ -73,8 +73,11 @@ export default function TemplateDetailScreen() {
     ]);
   };
 
-  const handleReorder = async (reordered: ExerciseTemplate[]) => {
+  const handleReorder = (reordered: ExerciseTemplate[]) => {
     setTemplate((t) => t ? { ...t, exercises: reordered } : t);
+  };
+
+  const handleReorderCommit = async (reordered: ExerciseTemplate[]) => {
     await reorderExercises(db, reordered.map((e) => e.id));
   };
 
@@ -131,6 +134,7 @@ export default function TemplateDetailScreen() {
         onPress={(ex) => router.push(`/exercise/${ex.id}`)}
         onDelete={handleDeleteExercise}
         onReorder={handleReorder}
+        onReorderCommit={handleReorderCommit}
       />
 
       <Pressable
