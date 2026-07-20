@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { List, CalendarDays, X } from 'lucide-react-native';
+import { List, CalendarDays, Pencil, X } from 'lucide-react-native';
 import { useDB } from '@/hooks/useDB';
 import { WorkoutSession } from '@/types';
 import { getRecentSessionsWithSets, deleteSession } from '@/services/sessionService';
@@ -14,6 +14,7 @@ const PAGE_SIZE = 20;
 
 export default function HistoryScreen() {
   const db = useDB();
+  const router = useRouter();
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -61,6 +62,11 @@ export default function HistoryScreen() {
     setLoadingMore(true);
     await loadSessions();
     setLoadingMore(false);
+  };
+
+  const handleEdit = (sessionId: number) => {
+    setSelectedSession(null);
+    router.push(`/session/edit/${sessionId}`);
   };
 
   const handleDelete = (sessionId: number) => {
@@ -116,7 +122,9 @@ export default function HistoryScreen() {
         <FlatList
           data={sessions}
           keyExtractor={(s) => String(s.id)}
-          renderItem={({ item }) => <HistoryItem session={item} onDelete={handleDelete} />}
+          renderItem={({ item }) => (
+            <HistoryItem session={item} onDelete={handleDelete} onEdit={handleEdit} />
+          )}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
@@ -128,13 +136,25 @@ export default function HistoryScreen() {
 
       {/* Day detail bottom sheet */}
       {selectedSession && (
-        <DayDetailModal session={selectedSession} onClose={() => setSelectedSession(null)} />
+        <DayDetailModal
+          session={selectedSession}
+          onClose={() => setSelectedSession(null)}
+          onEdit={handleEdit}
+        />
       )}
     </SafeAreaView>
   );
 }
 
-function DayDetailModal({ session, onClose }: { session: WorkoutSession; onClose: () => void }) {
+function DayDetailModal({
+  session,
+  onClose,
+  onEdit,
+}: {
+  session: WorkoutSession;
+  onClose: () => void;
+  onEdit: (id: number) => void;
+}) {
   const duration = session.finishedAt
     ? formatDuration(session.startedAt, session.finishedAt)
     : 'In progress';
@@ -164,9 +184,14 @@ function DayDetailModal({ session, onClose }: { session: WorkoutSession; onClose
               {formatDate(session.startedAt)} · {duration}
             </Text>
           </View>
-          <Pressable onPress={onClose} hitSlop={8} className="active:opacity-60 mt-1">
-            <X size={18} color="#9a9a9a" />
-          </Pressable>
+          <View className="flex-row items-center gap-4 mt-1">
+            <Pressable onPress={() => onEdit(session.id)} hitSlop={8} className="active:opacity-60">
+              <Pencil size={16} color="#9a9a9a" />
+            </Pressable>
+            <Pressable onPress={onClose} hitSlop={8} className="active:opacity-60">
+              <X size={18} color="#9a9a9a" />
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
