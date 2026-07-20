@@ -216,6 +216,35 @@ export async function getLoggedSetsForSession(
   return rows.map(rowToLoggedSet);
 }
 
+// Applies edits to a finished session's logged sets. Overwrites the actual_*
+// columns directly (no COALESCE) so a cleared optional weight persists as NULL.
+export async function updateSessionSets(
+  db: SQLiteDatabase,
+  updates: {
+    id: number;
+    actualWeightKg?: number;
+    actualReps?: number;
+    actualDurationSec?: number;
+  }[],
+  deletedIds: number[]
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (const u of updates) {
+      await db.runAsync(
+        `UPDATE logged_sets SET
+           actual_weight_kg    = ?,
+           actual_reps         = ?,
+           actual_duration_sec = ?
+         WHERE id = ?`,
+        [u.actualWeightKg ?? null, u.actualReps ?? null, u.actualDurationSec ?? null, u.id]
+      );
+    }
+    for (const id of deletedIds) {
+      await db.runAsync('DELETE FROM logged_sets WHERE id = ?', [id]);
+    }
+  });
+}
+
 export async function deleteLoggedSet(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('DELETE FROM logged_sets WHERE id = ?', [id]);
 }
